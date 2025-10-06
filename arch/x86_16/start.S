@@ -1,5 +1,6 @@
-.section .start
 .code16gcc
+
+.section .start
 .globl _start
 
 _start:

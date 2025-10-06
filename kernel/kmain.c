@@ -1,25 +1,14 @@
-void putc(char c)
-{
-    asm (
-        "movb %0, %%al\n\t"
-        "movb $0x0E, %%ah\n\t"
-        "int $0x10"
-        :
-        : "r"(c)
-        : "ax", "memory", "cc"
-    );
-}
+void bios_putc(char c);
 
-void print(const char *str)
+static void print(const char *str)
 {
     while (*str)
-        putc(*str++);
+        bios_putc(*str++);
 }
 
-void kmain(void)
-{
+void _start(void) {
 
-    print("Hello World!\n");
+    const char *msg = "Hello World!";
 
-    while (1);
+    print(msg);
 }

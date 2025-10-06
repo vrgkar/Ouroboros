@@ -1,5 +1,6 @@
-.section .header
 .code16gcc
+
+.section .header
 
 setup_sects:                .byte   0
 root_flags:                 .word   0

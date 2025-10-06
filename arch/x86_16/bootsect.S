@@ -1,5 +1,6 @@
-.section .bootsect
 .code16gcc
+
+.section .bootsect
 .globl _bootsect
 
 _bootsect:
@@ -18,7 +19,7 @@ _bootsect:
 
     int $0x13
 
-    jc .L1                    # If the sector wasn't able to be loaded, halt
+    jc .L1                      # If the sector wasn't able to be loaded, halt
 
     jmp 0x7E00                  # Jump to Stage 2
 
@@ -26,3 +27,6 @@ _bootsect:
 
         hlt
         jmp .L1
+
+
+        
