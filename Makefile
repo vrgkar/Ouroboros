@@ -1,8 +1,8 @@
 CC_X86_16 := gcc
-CFLAGS_X86_16 := -m16 -ffreestanding -nostdlib -nostartfiles
+CFLAGS_X86_16 := -std=gnu11 -m16 -ffreestanding -nostdlib -nostartfiles
 
 CC_X86_32 		:= gcc
-CFLAGS_X86_32 	:= -m32 -ffreestanding -nostdlib -nostartfiles
+CFLAGS_X86_32 	:= -std=gnu11 -m32 -ffreestanding -nostdlib -nostartfiles
 
 
 TARGET			:= Ouroboros
