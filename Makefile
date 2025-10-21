@@ -1,110 +1,37 @@
-CC_X86_16 := gcc
-CFLAGS_X86_16 := -std=gnu11 -m16 -ffreestanding -nostdlib -nostartfiles
+CC_x86 		:= gcc
+CFLAGS_x86 	:= -std=gnu17 -m32 -Wall -ffreestanding -nostdlib -nostartfiles
+QEMU_x86 := qemu-system-i386
 
-CC_X86_32 		:= gcc
-CFLAGS_X86_32 	:= -std=gnu11 -m32 -ffreestanding -nostdlib -nostartfiles
+TARGET			:= Ouroboros.img
 
+BUILD_x86	:= build
+TARGET_x86	:= $(BUILD_x86)/$(TARGET)
 
-TARGET			:= Ouroboros
-
-ARCH			:= arch
-KERNEL   		:= kernel
-BUILD			:= build
-
-ARCH_X86_16		:= arch/x86_16
-ARCH_X86_32		:= arch/x86_32
-
-BUILD_X86_16	:= build/x86_16
-BUILD_X86_32	:= build/x86_32
-
-TARGET_X86_16	:= $(BUILD_X86_16)/$(TARGET)
-TARGET_X86_32	:= $(BUILD_X86_32)/$(TARGET)
-
-ARCH_X86_16_ASM	:= $(notdir $(wildcard $(ARCH_X86_16)/*.S))
-ARCH_X86_16_SRC	:= $(notdir $(wildcard $(ARCH_X86_16)/*.c))
-
-ARCH_X86_32_ASM	:= $(notdir $(wildcard $(ARCH_X86_32)/*.S)) 
-ARCH_X86_32_SRC	:= $(notdir $(wildcard $(ARCH_X86_32)/*.c))
-
-KERNEL_ASM		:= $(notdir $(wildcard $(KERNEL)/*.S)) 
-KERNEL_SRC		:= $(notdir $(wildcard $(KERNEL)/*.c))
-
-ARCH_X86_16_OBJ	:= $(addprefix $(BUILD_X86_16)/, $(ARCH_X86_16_ASM:.S=.o)) $(addprefix $(BUILD_X86_16)/, $(ARCH_X86_16_SRC:.c=.o))
-ARCH_X86_32_OBJ	:= $(addprefix $(BUILD_X86_32)/, $(ARCH_X86_32_ASM:.S=.o)) $(addprefix $(BUILD_X86_32)/, $(ARCH_X86_32_SRC:.c=.o))
-
-KERNEL_X86_16_OBJ	:= $(addprefix $(BUILD_X86_16)/, $(KERNEL_ASM:.S=.o)) $(addprefix $(BUILD_X86_16)/, $(KERNEL_SRC:.c=.o))
-KERNEL_X86_32_OBJ	:= $(addprefix $(BUILD_X86_32)/, $(KERNEL_ASM:.S=.o)) $(addprefix $(BUILD_X86_32)/, $(KERNEL_SRC:.c=.o))
-
-OBJ_X86_16			:= $(ARCH_X86_16_OBJ) $(KERNEL_X86_16_OBJ)
-OBJ_X86_32			:= $(ARCH_X86_32_OBJ) $(KERNEL_X86_32_OBJ)
-
-LINKER_X86_16		:= $(wildcard $(ARCH_X86_16)/*.ld)
-LINKER_X86_32		:= $(wildcard $(ARCH_X86_32)/*.ld)
+ASM_x86	:= $(wildcard *.S)
+KERNEL_x86 := $(wildcard *.c)
+OBJ_x86 := $(addprefix $(BUILD_x86)/, $(ARCH_x86:.S=.o) $(KERNEL_x86:.c=.o))
+LINKER_x86 := $(wildcard *.ld)
 
 
-$(BUILD_X86_16)/%.o: $(ARCH_X86_16)/%.S | $(BUILD_X86_16)
-	$(CC_X86_16) $(CFLAGS_X86_16) -o $@ -c $^
+$(BUILD_x86)/%.o: %.S | $(BUILD_x86)
+	$(CC_x86) $(CFLAGS_x86) -o $@ -c $^
 
-$(BUILD_X86_16)/%.o: $(ARCH_X86_16)/%.c | $(BUILD_X86_16)
-	$(CC_X86_16) $(CFLAGS_X86_16) -o $@ -c $^
+$(BUILD_x86)/%.o: %.c | $(BUILD_x86)
+	$(CC_x86) $(CFLAGS_x86) -o $@ -c $^
 
-$(BUILD_X86_32)/%.o: $(ARCH_X86_32)/%.S | $(BUILD_X86_32)
-	$(CC_X86_32) $(CFLAGS_X86_32) -o $@ -c $^
+all: x86
 
-$(BUILD_X86_32)/%.o: $(ARCH_X86_32)/%.c | $(BUILD_X86_32)
-	$(CC_X86_32) $(CFLAGS_X86_32) -o $@ -c $^
+x86: $(OBJ_x86) | $(BUILD_x86)
+	$(CC_x86) $(CFLAGS_x86) -Wl,--oformat=binary -Wl,-T $(LINKER_x86) $^ -o $(TARGET_x86)
+	truncate -s 1440K $(TARGET_x86)
 
-$(BUILD_X86_16)/%.o: $(KERNEL)/%.c | $(BUILD_X86_16)
-	$(CC_X86_16) $(CFLAGS_X86_16) -o $@ -c $^
+qemu_x86:
+	$(QEMU_x86) $(TARGET_x86)
 
-$(BUILD_X86_16)/%.o: $(KERNEL)/%.S | $(BUILD_X86_16)
-	$(CC_X86_16) $(CFLAGS_X86_16) -o $@ -c $^
+clean_x86: | $(BUILD_x86)
+	-rm -rf $(BUILD_x86)
 
-$(BUILD_X86_32)/%.o: $(KERNEL)/%.c | $(BUILD_X86_32)
-	$(CC_X86_32) $(CFLAGS_X86_32) -o $@ -c $^
+$(BUILD_x86):
+	-mkdir -p $(BUILD_x86)
 
-$(BUILD_X86_32)/%.o: $(KERNEL)/%.S | $(BUILD_X86_32)
-	$(CC_X86_32) $(CFLAGS_X86_32) -o $@ -c $^
-
-all: build_x86_16 build_x86_32
-
-build: build_x86_32
-
-build_x86_16: $(OBJ_X86_16) | $(BUILD_X86_16)
-	$(CC_X86_16) $(CFLAGS_X86_16) -Wl,--oformat=binary -Wl,-T $(LINKER_X86_16) $^ -o $(TARGET_X86_16)
-	truncate -s 1440K $(TARGET_X86_16)
-
-build_x86_32: $(OBJ_X86_32) | $(BUILD_X86_32)
-	$(CC_X86_32) $(CFLAGS_X86_32) -Wl,--oformat=binary -Wl,-T $(LINKER_X86_32) $^ -o $(TARGET_X86_32)
-	truncate -s 1440K $(TARGET_X86_32)
-
-
-$(BUILD):
-	-mkdir -p $(BUILD)
-
-$(BUILD_X86_16):
-	-mkdir -p $(BUILD_X86_16)
-
-$(BUILD_X86_32):
-	-mkdir -p $(BUILD_X86_32)
-
-
-run:
-	qemu-system-i386 $(TARGET_X86_16)
-
-run_x86_16:
-	qemu-system-i386 $(TARGET_X86_16)
-
-run_x86_32:
-	qemu-system-i386 $(TARGET_X86_32)
-
-clean:
-	-rm -rf $(BUILD)
-
-clean_x86_16:
-	-rm -rf $(BUILD_X86_16)
-
-clean_x86_32:
-	-rm -rf $(BUILD_X86_32)
-
-.PHONY: clean clean_x86_16 clean_x86_32 run run_x86_16 run_x86_32
+.PHONY: qemu_x86 clean_x86
