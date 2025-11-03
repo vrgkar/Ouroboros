@@ -1,10 +1,7 @@
 .code16
-.org 0x7C00
 
 .section .boot
 .globl _start
-
-.balign 16
 
 _start:
     cli
@@ -15,11 +12,12 @@ _start:
     movw %ax, %es                           # Set ES = 0
     movw $_start, %sp                       # Set SP = _start
 
-    xorb __setup_sects, %al
+    xorb $__setup_sects, %al
     movw $(_start + 0x200), %bx             # Load disk sectors starting from the next sector in memory
     movw $0x2, %cx                          # Start reading from sector 2 of disk
     xorb %dh, %dh                           # Set head number to 0
     movw $3, %si                            # Retry disk operation 3 times
+    movw $jump, %di                       # On success, jump to 'success' label
 
 read:
     xorb $0x2, %ah                          # Read disk sectors
@@ -39,28 +37,9 @@ fail:
     jmp fail
 
 success:
-    jmp $(_start+0x200)
-
-.macro SEG_DESC base, limit, type=0, A=1, RW=1, DC=0, DPL=1, E=0, S=1, P=1, L=0, DB=1, G=1
-    .word \limit & 0xFFFF
-    .word \base & 0xFFFF
-    .byte (\base >> 16) & 0xFF
-    .byte (\P << 7) | (\DPL << 6) | (\S << 4) | (\E << 3) | (\DC << 2) | (\RW << 1) | \A
-    .byte (\G << 7) | ((\DB & ~\L) << 6) | (\L << 5) | ((\limit >> 16) & 0xF)
-    .byte (\base >> 24)
-.endm
-
-gdt:
-    .quad 0                                         # Null Descriptor
-    SEG_DESC base=0, limit=0xFFFFF, E=0, S=1        # Data Segment Descriptor
-    SEG_DESC base=0, limit=0xFFFFF, E=1, S=1        # Code Segment Descriptor
-
-gdtr:
-    .word . - gdt - 1
-    .long gdt         
+    jmp *%di
 
 .section .setup
-.org 0x7DF1 
 
 setup_sects:                .byte   __setup_sects
 root_flags:                 .word   0
@@ -103,10 +82,39 @@ handover_offset:            .long   0
 kernel_info_offset:         .long   0
 
 setup:
+
+    movb $(__syssectors), %al
+    movw $(__code32_start), %bx                 # Load disk sectors starting from the next sector in memory
+    movw $(__code32_start_sector), %cx          # Start reading from the sector where 32-bit code starts
+    xorb %dh, %dh                               # Set head number to 0
+    movw $3, %si                                # Retry disk operation 3 times
+    movw $success32, %di                         # On success, jump to 'success32'
+
+    jmp read
+
+success32:
     lgdt gdtr
 
     movl %cr0, %eax
     orl $1, %eax
     movl %eax, %cr0
 
-    ljmp $code32_start
+    ljmp $8, $(__code32_start)
+
+.macro GDT_SEG_DESC base, limit, flags, access
+    .word \limit & 0xFFFF
+    .word \base & 0xFFFF
+    .byte (\base >> 16) & 0xFF
+    .byte \access & 0xFF
+    .byte (\flags & 0xF0) | ((\limit >> 16) & 0xF)
+    .byte (\base >> 24) & 0xFF
+.endm
+
+gdt:
+    .quad 0
+    GDT_SEG_DESC base=0, limit=0xFFFFF, flags=0xC, access=0x9A
+    GDT_SEG_DESC base=0, limit=0xFFFFF, flags=0xC, access=0x92
+
+gdtr:
+    .word . - gdt - 1
+    .long gdt         

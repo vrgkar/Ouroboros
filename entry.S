@@ -3,4 +3,4 @@
 .section .entry
 
 entry:
-    call kmain
+    call main
