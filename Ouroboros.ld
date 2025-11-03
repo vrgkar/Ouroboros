@@ -21,16 +21,16 @@ SECTIONS
 
         __setup_end = .;
 
+        . = ALIGN(0x200);
+
         __kernel_start = .;
 
         *(.entry) 
-        
-        . = ALIGN(0x200);
-        
+
+        . = ALIGN(0x1);
+
         *(.text) *(.text*)
     }
-
-    . = ALIGN(0x1000);
 
     .rodata : {
         *(.rodata) *(.rodata*)
@@ -49,6 +49,8 @@ SECTIONS
     PROVIDE(__setup_sects = (__setup_bytes + 511) / 512);
     PROVIDE(__kernel_bytes = __kernel_end - __kernel_start);
     PROVIDE(__syssize = ((__kernel_bytes + 15) / 16));
+    PROVIDE(__syssectors = (__setup_bytes + 511) / 512);
     PROVIDE(__code32_start = __kernel_start);
+    PROVIDE(__code32_start_sector = (1 + (__kernel_start - __bootsect_start) / 512));
 
 }
